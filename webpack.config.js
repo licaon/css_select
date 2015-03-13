@@ -32,12 +32,12 @@ module.exports = {
   },
   module: {
     preLoaders: [{
-      test: /\.js$/,
+      test: /\.(js|jsx)$/,
       exclude: /node_modules/,
       loader: 'jshint'
     }],
     loaders: [{
-      test: /\.js$/,
+      test: /\.(js|jsx)$/,
       exclude: /node_modules/,
       loader: 'react-hot!jsx-loader?harmony'
     }, {
