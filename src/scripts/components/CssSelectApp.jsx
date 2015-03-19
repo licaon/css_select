@@ -94,9 +94,37 @@ var parseCSS = (function () {
 var imageURL = require('../../images/yeoman.png');
 
 var ColorPicker = React.createClass({
+    handleChange: function (ev) {
+        var attr = ev.getAttribute('data-path').split('__');
+        this.props.updateData(attr[0], attr[1], $(ev).val());
+    },
+    componentDidMount: function () {
+        var that = this;
+        $(this.getDOMNode()).spectrum({
+            preferredFormat: "hex3",
+            showInput: true,
+            change: function (color) {
+                that.handleChange(this);
+            }
+        });
+    },
     render: function () {
         return (
-            <input id={this.props.id}/>
+            <input id={this.props.id} defaultValue={this.props.value} onChange={this.handleChange} data-path={this.props.path} />
+        )
+    }
+});
+
+var FontSelect = React.createClass({
+    handleChange: function (ev) {
+        var attr = ev.getAttribute('data-path').split('__');
+        this.props.updateData(attr[0], attr[1], $(ev).val());
+    },
+    componentDidMount: function () {
+    },
+    render: function () {
+        return (
+            <input id={this.props.id} defaultValue={this.props.value} onChange={this.handleChange} data-path={this.props.path} />
         )
     }
 });
@@ -105,35 +133,38 @@ var CssSelectApp = React.createClass({
     getInitialState: function () {
         return {
             "doWeHaveData": false,
-            "colorpicker" : [],
+            "colorpicker": [],
+            "fontInput": [],
             "ids": {}
         }
     },
-    componentWillMount: function() {
+    componentWillMount: function () {
         parseCSS.exportToJSON('../../styles/main.css', this.weHaveData);
     },
-    weHaveData: function(data) {
+    weHaveData: function (data) {
         this.generateInputs(data);
         this.setState({"data": data, "doWeHaveData": true});
     },
-    generateInputs: function(data) {
-        for(var key in data) {
+    updateData: function (classID,property, value) {
+        this.state.data[classID][property] = value;
+    },
+    generateInputs: function (data) {
+        for (var key in data) {
             for (var property in data[key]) {
-                if(property.indexOf('background') !== -1 || property.indexOf('color') !== -1) {
-                    var id = key.replace(/(\.|\s|\,)/g,'') + '_' + property;
+                if (property.indexOf('background') !== -1 || property.indexOf('color') !== -1) {
+                    var id = key.replace(/(\.|\s|\,)/g, '') + '_' + property;
                     this.state.ids[id] = data[key][property];
-                    this.state.colorpicker.push(<ColorPicker id={id} />);
+                    this.state.colorpicker.push(<ColorPicker id={id} value={data[key][property]} path={key + '__' + property} updateData={this.updateData} />);
+                } else if (property.indexOf('font') !== -1) {
+                    var id = key.replace(/(\.|\s|\,)/g, '') + '_' + property;
+                    this.state.ids[id] = data[key][property];
+                    this.state.fontInput.push(<ColorPicker id={id} value={data[key][property]} path={key + '__' + property} updateData={this.updateData} />);
                 }
+
             }
         }
     },
-    componentDidUpdate: function() {
-        var color = this.state.ids;
-        for (var key in color) {
-            $("#" + key).spectrum({
-                color: color[key]
-            });
-        }
+    componentDidUpdate: function () {
     },
     render: function () {
         return this.state.doWeHaveData ?
