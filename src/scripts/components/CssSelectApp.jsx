@@ -119,12 +119,12 @@ var ColorPicker = React.createClass({
 var FontSelect = React.createClass({
     getInitialState: function () {
         return {
-            "type": {"rem" : 16, "em": 16, "px": 1}
+            "type": {"rem": 16, "em": 16, "px": 1}
         }
     },
     handleChange: function (ev) {
         var attr = ev.target.getAttribute('data-path').split('__');
-        this.props.updateData(attr[0], attr[1], ($(ev.target).val()/this.state.type[this.state.unit]).toFixed(2) + this.state.unit);
+        this.props.updateData(attr[0], attr[1], ($(ev.target).val() / this.state.type[this.state.unit]).toFixed(2) + this.state.unit);
     },
     componentWillMount: function () {
         this.state.numVal = parseFloat(this.props.value);
@@ -132,7 +132,7 @@ var FontSelect = React.createClass({
         this.state.numPX = this.state.numVal * this.state.type[this.state.unit];
     },
     render: function () {
-        var option = (function() {
+        var option = (function () {
             var options = [];
             for (var i = this.state.numPX - 5; i <= this.state.numPX + 5; i++) {
                 options.push(<option value={i}>{i}</option>);
@@ -147,17 +147,60 @@ var FontSelect = React.createClass({
     }
 });
 
+var Frame = React.createClass({
+    getInitialState: function () {
+        return {
+            "generateBody": false
+        }
+    },
+    render: function () {
+        return <iframe/>;
+    },
+    componentDidMount: function () {
+        this.renderFrameContents(true);
+    },
+    renderFrameContents: function (firstTime) {
+        var doc = $(this.getDOMNode()).contents();
+        if (doc[0].readyState === 'complete') {
+            if(this.props.data && !this.state.generateBody) {
+                $(doc.contents().find("body")[0]).html(this.props.data);
+                this.state.generateBody = true;
+            }
+            $(doc.contents().find("#generated")[0]).html(this.props.style);
+        } else {
+            setTimeout(this.renderFrameContents, 0);
+        }
+    },
+    componentDidUpdate: function () {
+        this.renderFrameContents(false);
+    },
+    componentWillUnmount: function () {
+        React.unmountComponentAtNode(this.getDOMNode().contentWindow.document.body);
+    }
+});
+
 var CssSelectApp = React.createClass({
     getInitialState: function () {
         return {
             "doWeHaveData": false,
             "colorpicker": [],
             "fontInput": [],
-            "ids": {}
+            "ids": {},
+            "html": false,
+            "style": ""
         }
     },
     componentWillMount: function () {
+        var path = "../../iframe.html";
+
         parseCSS.exportToJSON('../../styles/main.css', this.weHaveData);
+
+        $.ajax({
+            url: path
+        }).done(function (data) {
+            //console.log(data);
+            this.setState({"html": data})
+        }.bind(this));
     },
     weHaveData: function (data) {
         this.generateInputs(data);
@@ -165,6 +208,7 @@ var CssSelectApp = React.createClass({
     },
     updateData: function (classID, property, value) {
         this.state.data[classID][property] = value;
+        this.setState({"style": parseCSS.exportToCSS(this.state.data)})
     },
     saveData: function () {
         var css = parseCSS.exportToCSS(this.state.data);
@@ -187,6 +231,8 @@ var CssSelectApp = React.createClass({
         }
     },
     componentDidMount: function () {
+        //console.log(this.getDOMNode(),1);
+        //var innerDoc = iframe.contentDocument || iframe.contentWindow.document;
     },
     render: function () {
         return this.state.doWeHaveData ?
@@ -195,6 +241,7 @@ var CssSelectApp = React.createClass({
                     {this.state.colorpicker}
                     {this.state.fontInput}
                     <Input type="submit" value="Save" onClick={this.saveData}/>
+                    <Frame data={this.state.html} style={this.state.style}/>
                 </ReactTransitionGroup>
             </div> : null
     }
