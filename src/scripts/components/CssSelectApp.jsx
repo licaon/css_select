@@ -3,12 +3,13 @@
 var React = require('react/addons');
 var ReactTransitionGroup = React.addons.TransitionGroup;
 var $ = require('jquery');
+var Input = require('react-bootstrap/lib/Input');
 require('../plugins/spectrum');
-
 // CSS
-require('../../styles/normalize.css');
-require('../../styles/main.css');
+//require('../../styles/normalize.css');
+//require('../../styles/main.css');
 require('../../styles/spectrum.css');
+require('bootstrap/dist/css/bootstrap.min.css');
 
 var parseCSS = (function () {
     var open = [], closed = [], cssObject = {}, data = "";
@@ -116,15 +117,32 @@ var ColorPicker = React.createClass({
 });
 
 var FontSelect = React.createClass({
-    handleChange: function (ev) {
-        var attr = ev.getAttribute('data-path').split('__');
-        this.props.updateData(attr[0], attr[1], $(ev).val());
+    getInitialState: function () {
+        return {
+            "type": {"rem" : 16, "em": 16, "px": 1}
+        }
     },
-    componentDidMount: function () {
+    handleChange: function (ev) {
+        var attr = ev.target.getAttribute('data-path').split('__');
+        this.props.updateData(attr[0], attr[1], ($(ev.target).val()/this.state.type[this.state.unit]).toFixed(2) + this.state.unit);
+    },
+    componentWillMount: function () {
+        this.state.numVal = parseFloat(this.props.value);
+        this.state.unit = this.props.value.replace(this.state.numVal, '');
+        this.state.numPX = this.state.numVal * this.state.type[this.state.unit];
     },
     render: function () {
+        var option = (function() {
+            var options = [];
+            for (var i = this.state.numPX - 5; i <= this.state.numPX + 5; i++) {
+                options.push(<option value={i}>{i}</option>);
+            }
+            return options;
+        }.bind(this))();
         return (
-            <input id={this.props.id} defaultValue={this.props.value} onChange={this.handleChange} data-path={this.props.path} />
+            <Input id={this.props.id} type="select" label='Select' defaultValue={this.state.numPX} onChange={this.handleChange} data-path={this.props.path}>
+                {option}
+            </Input>
         )
     }
 });
@@ -145,8 +163,12 @@ var CssSelectApp = React.createClass({
         this.generateInputs(data);
         this.setState({"data": data, "doWeHaveData": true});
     },
-    updateData: function (classID,property, value) {
+    updateData: function (classID, property, value) {
         this.state.data[classID][property] = value;
+    },
+    saveData: function () {
+        var css = parseCSS.exportToCSS(this.state.data);
+        console.log(css);
     },
     generateInputs: function (data) {
         for (var key in data) {
@@ -155,22 +177,24 @@ var CssSelectApp = React.createClass({
                     var id = key.replace(/(\.|\s|\,)/g, '') + '_' + property;
                     this.state.ids[id] = data[key][property];
                     this.state.colorpicker.push(<ColorPicker id={id} value={data[key][property]} path={key + '__' + property} updateData={this.updateData} />);
-                } else if (property.indexOf('font') !== -1) {
+                } else if (property.indexOf('font-size') !== -1) {
                     var id = key.replace(/(\.|\s|\,)/g, '') + '_' + property;
                     this.state.ids[id] = data[key][property];
-                    this.state.fontInput.push(<ColorPicker id={id} value={data[key][property]} path={key + '__' + property} updateData={this.updateData} />);
+                    this.state.fontInput.push(<FontSelect id={id} value={data[key][property]} path={key + '__' + property} updateData={this.updateData} />);
                 }
 
             }
         }
     },
-    componentDidUpdate: function () {
+    componentDidMount: function () {
     },
     render: function () {
         return this.state.doWeHaveData ?
             <div className='main'>
                 <ReactTransitionGroup transitionName="fade">
                     {this.state.colorpicker}
+                    {this.state.fontInput}
+                    <Input type="submit" value="Save" onClick={this.saveData}/>
                 </ReactTransitionGroup>
             </div> : null
     }
