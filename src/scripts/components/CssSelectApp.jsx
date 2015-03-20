@@ -92,8 +92,6 @@ var parseCSS = (function () {
     return {exportToCSS: exportToCSS, exportToJSON: exportToJSON}
 })();
 
-var imageURL = require('../../images/yeoman.png');
-
 var ColorPicker = React.createClass({
     handleChange: function (ev) {
         var attr = ev.getAttribute('data-path').split('__');
@@ -101,7 +99,7 @@ var ColorPicker = React.createClass({
     },
     componentDidMount: function () {
         var that = this;
-        $(this.getDOMNode()).spectrum({
+        $(this.getDOMNode()).find('#' + this.props.id).spectrum({
             preferredFormat: "hex3",
             showInput: true,
             change: function (color) {
@@ -111,7 +109,10 @@ var ColorPicker = React.createClass({
     },
     render: function () {
         return (
-            <input id={this.props.id} defaultValue={this.props.value} onChange={this.handleChange} data-path={this.props.path} />
+            <div>
+                <label forHtml = {this.props.id}>{this.props.label} </label>
+                <input id={this.props.id} defaultValue={this.props.value} onChange={this.handleChange} data-path={this.props.path} />
+            </div>
         )
     }
 });
@@ -140,7 +141,7 @@ var FontSelect = React.createClass({
             return options;
         }.bind(this))();
         return (
-            <Input id={this.props.id} type="select" label='Select' defaultValue={this.state.numPX} onChange={this.handleChange} data-path={this.props.path}>
+            <Input id={this.props.id} type="select" label={this.props.label} defaultValue={this.state.numPX} onChange={this.handleChange} data-path={this.props.path}>
                 {option}
             </Input>
         )
@@ -191,12 +192,10 @@ var CssSelectApp = React.createClass({
         }
     },
     componentWillMount: function () {
-        var path = "../../iframe.html";
-
-        parseCSS.exportToJSON('../../styles/main.css', this.weHaveData);
+        parseCSS.exportToJSON(this.props.cssPath, this.weHaveData);
 
         $.ajax({
-            url: path
+            url: this.props.iframePath
         }).done(function (data) {
             //console.log(data);
             this.setState({"html": data})
@@ -220,19 +219,18 @@ var CssSelectApp = React.createClass({
                 if (property.indexOf('background') !== -1 || property.indexOf('color') !== -1) {
                     var id = key.replace(/(\.|\s|\,)/g, '') + '_' + property;
                     this.state.ids[id] = data[key][property];
-                    this.state.colorpicker.push(<ColorPicker id={id} value={data[key][property]} path={key + '__' + property} updateData={this.updateData} />);
+                    this.state.colorpicker.push(<ColorPicker id={id} value={data[key][property]} label={this.props.label[key] || key} path={key + '__' + property} updateData={this.updateData} />);
                 } else if (property.indexOf('font-size') !== -1) {
                     var id = key.replace(/(\.|\s|\,)/g, '') + '_' + property;
                     this.state.ids[id] = data[key][property];
-                    this.state.fontInput.push(<FontSelect id={id} value={data[key][property]} path={key + '__' + property} updateData={this.updateData} />);
+                    this.state.fontInput.push(<FontSelect id={id} value={data[key][property]} label={this.props.label[key] || key} path={key + '__' + property} updateData={this.updateData} />);
                 }
 
             }
         }
     },
     componentDidMount: function () {
-        //console.log(this.getDOMNode(),1);
-        //var innerDoc = iframe.contentDocument || iframe.contentWindow.document;
+
     },
     render: function () {
         return this.state.doWeHaveData ?
@@ -247,4 +245,6 @@ var CssSelectApp = React.createClass({
     }
 });
 
-module.exports = CssSelectApp;
+var content = document.getElementById('content');
+
+React.render(<CssSelectApp cssPath = "../../styles/main.css" iframePath = "../../iframe.html" label = {{"html, body": "Body", ".main": "Main Div"}}/>, content);
